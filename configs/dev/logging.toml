@@ -1,0 +1,27 @@
+[Logger]
+Debug = true
+Level = "debug" # debug/info/warn/error/dpanic/panic/fatal
+CallerSkip = 1
+
+[Logger.File]
+Enable = false
+Path = "data/log/gin-admin.log"
+MaxBackups = 20 # Files
+MaxSize = 64 # MB
+
+[[Logger.Hooks]]
+Enable = true
+Level = "info"
+Type = "gorm" # gorm
+MaxBuffer = 1024
+MaxThread = 2
+
+[Logger.Hooks.Options]
+Debug = "false"
+DBType = "mysql" # sqlite3/mysql/postgres
+#DSN = "data/gin-admin.db"
+DSN = "username:password@tcp(ip:3306)/gin-admin?charset=utf8mb4&parseTime=True&loc=Local"
+MaxOpenConns = "16"
+MaxIdleConns = "4"
+MaxLifetime = "86400"
+MaxIdleTime = "7200"
