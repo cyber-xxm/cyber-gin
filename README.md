@@ -1,3 +1,6 @@
+原仓库地址：https://github.com/LyricTian/gin-admin.git
+该项目结构目录清晰，代码易懂，方便上手操作，本项目基于上面仓库代码地址进行修改。
+
 # [Gin](https://github.com/gin-gonic/gin)-Admin
 
 > 基于 Golang + Gin + GORM 2.0 + Casbin 2.0 + Wire DI 的轻量级、灵活、优雅且功能齐全的 RBAC 脚手架。
