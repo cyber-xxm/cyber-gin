@@ -81,7 +81,7 @@ func Run(ctx context.Context, runCfg RunConfig) error {
 	prom.Init()
 
 	return util.Run(ctx, func(ctx context.Context) (func(), error) {
-		err = startHTTPServer(ctx, injector)
+		cleanHTTPServerFn, err := startHTTPServer(ctx, injector)
 		if err != nil {
 			return cleanInjectorFn, err
 		}
@@ -89,6 +89,9 @@ func Run(ctx context.Context, runCfg RunConfig) error {
 		return func() {
 			if err := injector.M.Release(ctx); err != nil {
 				logging.Context(ctx).Error("failed to release injector", zap.Error(err))
+			}
+			if cleanHTTPServerFn != nil {
+				cleanHTTPServerFn()
 			}
 
 			if cleanInjectorFn != nil {

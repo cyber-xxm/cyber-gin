@@ -33,6 +33,7 @@ type General struct {
 		ReadTimeout     int    `default:"60"` // seconds
 		WriteTimeout    int    `default:"60"` // seconds
 		IdleTimeout     int    `default:"10"` // seconds
+		CaFile          string
 		CertFile        string
 		KeyFile         string
 	}

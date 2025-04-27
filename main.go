@@ -87,7 +87,7 @@ func main() {
 	//cef.Run(cefApp)
 
 	err := bootstrap.Run(ctx, bootstrap.RunConfig{
-		WorkDir: "/Users/xxm/Documents/Workspace/GolandProjects/gin-admin/configs",
+		WorkDir: "/Users/xxm/Documents/Workspace/GolandProjects/cyber-gin/configs",
 		Configs: "dev",
 		//StaticDir: "resources/dist",
 	})
