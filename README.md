@@ -1,5 +1,5 @@
 原仓库地址：https://github.com/LyricTian/gin-admin.git
-该项目结构目录清晰，代码易懂，方便上手操作，本项目基于上面仓库代码地址进行修改。
+该项目结构目录清晰，代码易懂，方便上手操作，本项目基于上面仓库代码地址进行修改和学习，请前往原仓库地址clone代码。
 
 # [Gin](https://github.com/gin-gonic/gin)-Admin
 
