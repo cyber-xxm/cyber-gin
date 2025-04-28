@@ -31,6 +31,7 @@ subjectAltName = @alt_names
 [ alt_names ]
 DNS.1 = localhost
 IP.1 = 127.0.0.1
+DNS.2 = hasee.local
 EOF
 
 echo "=== 3. 创建 client证书的配置文件 (SAN) ==="
@@ -71,5 +72,5 @@ echo "=== 6. 整理清理临时文件 ==="
 rm certs/*.csr
 rm certs/*.srl
 
-echo "✅ 全部证书生成完毕！在 certs/ 目录下："
+echo "全部证书生成完毕！在 certs/ 目录下："
 ls -l certs/

@@ -11,12 +11,14 @@ DenyOperateMenu = true
 
 [General.HTTP]
 Addr = ":8040"
+EnableTcp = false
 ShutdownTimeout = 10
 ReadTimeout = 60
 WriteTimeout = 60
 IdleTimeout = 10
-CertFile = ""
-KeyFile = ""
+CaFile = "certs/ca.crt"
+CertFile = "certs/server.crt"
+KeyFile = "certs/server.key"
 
 [General.Root] # Super Administrator Account
 ID = "root"

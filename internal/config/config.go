@@ -29,6 +29,7 @@ type General struct {
 	DenyOperateMenu    bool
 	HTTP               struct {
 		Addr            string `default:":8040"`
+		EnableTcp       bool   `default:"false"`
 		ShutdownTimeout int    `default:"10"` // seconds
 		ReadTimeout     int    `default:"60"` // seconds
 		WriteTimeout    int    `default:"60"` // seconds

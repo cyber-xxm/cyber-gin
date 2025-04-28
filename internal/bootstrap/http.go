@@ -71,46 +71,32 @@ func startHTTPServer(ctx context.Context, injector *wirex.Injector) (func(), err
 	}
 
 	addr := config.C.General.HTTP.Addr
-	logging.Context(ctx).Info(fmt.Sprintf("HTTP server is listening on %s", addr))
+	logging.Context(ctx).Info(fmt.Sprintf("server is listening on %s", addr))
 
-	// 1. 加载服务器证书
-	serverCert, err := tls.LoadX509KeyPair(config.C.General.HTTP.CertFile, config.C.General.HTTP.KeyFile)
+	srv := &http.Server{}
+	tlsConfig, err := loadCerts(ctx)
 	if err != nil {
-		logging.Context(ctx).Info("failed to load server cert/key: %v", zap.Error(err))
+		logging.Context(ctx).Error("Failed to load certs ", zap.Error(err))
 		return nil, err
-	}
-
-	// 2. 加载CA，用来验证客户端证书
-	caCert, err := os.ReadFile(config.C.General.HTTP.CaFile)
-	if err != nil {
-		logging.Context(ctx).Info("failed to read CA cert: %v", zap.Error(err))
-		return nil, err
-	}
-	caCertPool := x509.NewCertPool()
-	caCertPool.AppendCertsFromPEM(caCert)
-
-	// 3. TLS配置，要求客户端提供证书并验证
-	tlsConfig := &tls.Config{
-		Certificates: []tls.Certificate{serverCert},
-		ClientCAs:    caCertPool,
-		ClientAuth:   tls.RequireAndVerifyClientCert,
-		MinVersion:   tls.VersionTLS12,
-	}
-
-	srv := &http.Server{
-		Addr:         addr,
-		Handler:      e,
-		ReadTimeout:  time.Second * time.Duration(config.C.General.HTTP.ReadTimeout),
-		WriteTimeout: time.Second * time.Duration(config.C.General.HTTP.WriteTimeout),
-		IdleTimeout:  time.Second * time.Duration(config.C.General.HTTP.IdleTimeout),
-		TLSConfig:    tlsConfig,
 	}
 
 	go func() {
-		if config.C.General.HTTP.CertFile != "" && config.C.General.HTTP.KeyFile != "" && config.C.General.HTTP.CaFile != "" {
-			err = srv.ListenAndServeTLS("", "")
+		// 如果是起http服务
+		if !config.C.General.HTTP.EnableTcp {
+			srv.Addr = addr
+			srv.Handler = e
+			srv.ReadTimeout = time.Second * time.Duration(config.C.General.HTTP.ReadTimeout)
+			srv.WriteTimeout = time.Second * time.Duration(config.C.General.HTTP.WriteTimeout)
+			srv.IdleTimeout = time.Second * time.Duration(config.C.General.HTTP.IdleTimeout)
+			// 如果是起https服务
+			if tlsConfig != nil {
+				srv.TLSConfig = tlsConfig
+				err = srv.ListenAndServeTLS("", "")
+			} else {
+				err = srv.ListenAndServe()
+			}
 		} else {
-			startTCPServer(addr, e)
+			err = startTCPServer(addr, tlsConfig, e)
 		}
 		if err != nil && !er.Is(http.ErrServerClosed, err) {
 			logging.Context(ctx).Error("Failed to listen http server", zap.Error(err))
@@ -213,4 +199,33 @@ func useHTTPMiddlewares(_ context.Context, e *gin.Engine, injector *wirex.Inject
 	}
 
 	return nil
+}
+
+func loadCerts(ctx context.Context) (*tls.Config, error) {
+	if config.C.General.HTTP.CertFile != "" && config.C.General.HTTP.KeyFile != "" && config.C.General.HTTP.CaFile != "" {
+		// 1. 加载服务器证书
+		serverCert, err := tls.LoadX509KeyPair(config.C.General.HTTP.CertFile, config.C.General.HTTP.KeyFile)
+		if err != nil {
+			logging.Context(ctx).Info("failed to load server cert/key: %v", zap.Error(err))
+			return nil, err
+		}
+
+		// 2. 加载CA，用来验证客户端证书
+		caCert, err := os.ReadFile(config.C.General.HTTP.CaFile)
+		if err != nil {
+			logging.Context(ctx).Info("failed to read CA cert: %v", zap.Error(err))
+			return nil, err
+		}
+		caCertPool := x509.NewCertPool()
+		caCertPool.AppendCertsFromPEM(caCert)
+
+		// 3. TLS配置，要求客户端提供证书并验证
+		return &tls.Config{
+			Certificates: []tls.Certificate{serverCert},
+			ClientCAs:    caCertPool,
+			ClientAuth:   tls.RequireAndVerifyClientCert,
+			MinVersion:   tls.VersionTLS12,
+		}, nil
+	}
+	return nil, nil
 }

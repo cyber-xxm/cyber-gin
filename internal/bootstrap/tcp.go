@@ -3,13 +3,13 @@ package bootstrap
 import (
 	"bufio"
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"io"
 	"net"
 	"net/http"
-	"os"
 	"path"
 	"runtime"
 	"strconv"
@@ -1009,19 +1009,26 @@ func bodyAllowedForStatus(status int) bool {
 	return true
 }
 
-func startTCPServer(addr string, ginEngine *gin.Engine) {
+func startTCPServer(addr string, tlsCfg *tls.Config, ginEngine *gin.Engine) error {
+	var l net.Listener
+	var err error
 	// 启动 TCP 监听服务
-	listen, err := net.Listen("tcp", addr)
+	if tlsCfg != nil {
+		l, err = tls.Listen("tcp", addr, tlsCfg)
+	} else {
+		l, err = net.Listen("tcp", addr)
+	}
+
 	if err != nil {
 		fmt.Println("Error starting TCP server:", err)
-		os.Exit(1)
+		return err
 	}
-	defer listen.Close()
+	defer l.Close()
 
 	fmt.Println(fmt.Sprintf("TCP server listening on %s", addr))
 	for {
 		// 接受客户端连接
-		rw, err := listen.Accept()
+		rw, err := l.Accept()
 		if err != nil {
 			fmt.Println("Error accepting connection:", err)
 			continue
