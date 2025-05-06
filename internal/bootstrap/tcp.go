@@ -6,6 +6,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"gitee.com/Trisia/gotlcp/tlcp"
 	"github.com/gin-gonic/gin"
 	"io"
 	"net"
@@ -1009,12 +1010,14 @@ func bodyAllowedForStatus(status int) bool {
 	return true
 }
 
-func startTCPServer(addr string, tlsCfg *tls.Config, ginEngine *gin.Engine) error {
+func startTCPServer(addr string, tlsCfg *tls.Config, tlcpCfg *tlcp.Config, ginEngine *gin.Engine) error {
 	var l net.Listener
 	var err error
 	// 启动 TCP 监听服务
 	if tlsCfg != nil {
 		l, err = tls.Listen("tcp", addr, tlsCfg)
+	} else if tlcpCfg != nil {
+		l, err = tlcp.Listen("tcp", addr, tlcpCfg)
 	} else {
 		l, err = net.Listen("tcp", addr)
 	}

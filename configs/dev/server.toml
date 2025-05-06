@@ -16,9 +16,20 @@ ShutdownTimeout = 10
 ReadTimeout = 60
 WriteTimeout = 60
 IdleTimeout = 10
-CaFile = "certs/ca.crt"
-CertFile = "certs/server.crt"
-KeyFile = "certs/server.key"
+# 要么只能用https/tls，要么只能用tlcp，不能同时使用。使用tls时，tlcp证书为空，使用tlcp时，tls/https证书为空
+CaFile = "resources/certs/tls/ca.crt"
+CertFile = "resources/certs/tls/server.crt"
+KeyFile = "resources/certs/tls/server.key"
+# TLCP协议除IBC参数外，数字证书格式均要求为 X.509格式，数字证书格式参见 《GMT 0015-2012 基于SM2密码算法的数字证书格式》，其中服务端证书为“服务器证书”。
+# 区别于TLS协议，TLCP协议要求服务端需要使用2对非对称密钥对以及2张证书，它们分别是：
+# - 签名密钥对、签名证书，用于身份认证。
+# - 加密密钥对、加密证书，用于密钥交换，特别的加密密钥对应由外部密钥管理机构（KMC）产生并由外部认证机构签发加密证书。（见 GM/T 0024 7.3.1.1.1）
+# 我们将签名密钥对与加密密钥对统称为 服务端密钥。
+RootFile = "resources/certs/tlcp/root_cert.pem"
+SigCertFile = "resources/certs/tlcp/sig_cert.pem"
+SigKeyFile = "resources/certs/tlcp/sig_key.pem"
+EncCertFile = "resources/certs/tlcp/enc_cert.pem"
+EncKeyFile = "resources/certs/tlcp/enc_key.pem"
 
 [General.Root] # Super Administrator Account
 ID = "root"

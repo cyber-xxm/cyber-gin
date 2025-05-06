@@ -23,12 +23,14 @@ replace (
 )
 
 require (
+	gitee.com/Trisia/gotlcp v1.4.0
 	github.com/BurntSushi/toml v1.5.0
 	github.com/LyricTian/captcha v1.2.0
 	github.com/aws/aws-sdk-go v1.55.7
 	github.com/casbin/casbin/v2 v2.105.0
 	github.com/creasty/defaults v1.8.0
 	github.com/dgraph-io/badger/v3 v3.2103.5
+	github.com/emmansun/gmsm v0.29.8
 	github.com/gavv/httpexpect/v2 v2.17.0
 	github.com/gin-contrib/cors v1.7.5
 	github.com/gin-gonic/gin v1.10.0

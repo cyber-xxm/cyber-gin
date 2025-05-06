@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	er "errors"
 	"fmt"
+	"gitee.com/Trisia/gotlcp/tlcp"
 	"github.com/casbin/casbin/v2"
 	"github.com/cyber-xxm/cyber-gin/v1/internal/config"
 	"github.com/cyber-xxm/cyber-gin/v1/internal/utility/prom"
@@ -14,6 +15,7 @@ import (
 	"github.com/cyber-xxm/cyber-gin/v1/pkg/logging"
 	"github.com/cyber-xxm/cyber-gin/v1/pkg/middleware"
 	"github.com/cyber-xxm/cyber-gin/v1/pkg/util"
+	"github.com/emmansun/gmsm/smx509"
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -74,10 +76,20 @@ func startHTTPServer(ctx context.Context, injector *wirex.Injector) (func(), err
 	logging.Context(ctx).Info(fmt.Sprintf("server is listening on %s", addr))
 
 	srv := &http.Server{}
-	tlsConfig, err := loadCerts(ctx)
+	tlsConfig, err := loadTLSCerts(ctx)
 	if err != nil {
 		logging.Context(ctx).Error("Failed to load certs ", zap.Error(err))
 		return nil, err
+	}
+	tlcpConfig, err := loadTLCPCerts(ctx)
+	if err != nil {
+		logging.Context(ctx).Error("Failed to load certs ", zap.Error(err))
+		return nil, err
+	}
+
+	// 判断是否同时配置了tls和tlcp证书，如果是，则报错
+	if tlsConfig != nil && tlcpConfig != nil {
+		return nil, er.New("do not use TLS and TLCP both")
 	}
 
 	go func() {
@@ -96,7 +108,7 @@ func startHTTPServer(ctx context.Context, injector *wirex.Injector) (func(), err
 				err = srv.ListenAndServe()
 			}
 		} else {
-			err = startTCPServer(addr, tlsConfig, e)
+			err = startTCPServer(addr, tlsConfig, tlcpConfig, e)
 		}
 		if err != nil && !er.Is(http.ErrServerClosed, err) {
 			logging.Context(ctx).Error("Failed to listen http server", zap.Error(err))
@@ -201,7 +213,7 @@ func useHTTPMiddlewares(_ context.Context, e *gin.Engine, injector *wirex.Inject
 	return nil
 }
 
-func loadCerts(ctx context.Context) (*tls.Config, error) {
+func loadTLSCerts(ctx context.Context) (*tls.Config, error) {
 	if config.C.General.HTTP.CertFile != "" && config.C.General.HTTP.KeyFile != "" && config.C.General.HTTP.CaFile != "" {
 		// 1. 加载服务器证书
 		serverCert, err := tls.LoadX509KeyPair(config.C.General.HTTP.CertFile, config.C.General.HTTP.KeyFile)
@@ -225,6 +237,56 @@ func loadCerts(ctx context.Context) (*tls.Config, error) {
 			ClientCAs:    caCertPool,
 			ClientAuth:   tls.RequireAndVerifyClientCert,
 			MinVersion:   tls.VersionTLS12,
+		}, nil
+	}
+	return nil, nil
+}
+
+func loadTLCPCerts(ctx context.Context) (*tlcp.Config, error) {
+	if config.C.General.HTTP.RootCertFile != "" &&
+		config.C.General.HTTP.SigCertFile != "" &&
+		config.C.General.HTTP.SigKeyFile != "" &&
+		config.C.General.HTTP.EncCertFile != "" &&
+		config.C.General.HTTP.EncKeyFile != "" {
+		fileBytes, err := os.ReadFile(config.C.General.HTTP.RootCertFile)
+		sigCertFileBytes, err := os.ReadFile(config.C.General.HTTP.SigCertFile)
+		sigKeyFileBytes, err := os.ReadFile(config.C.General.HTTP.SigKeyFile)
+		encCertFileBytes, err := os.ReadFile(config.C.General.HTTP.EncCertFile)
+		encKeyFileBytes, err := os.ReadFile(config.C.General.HTTP.EncKeyFile)
+		if err != nil {
+			return nil, err
+		}
+		// 1. 加载服务器证书
+		rootCert, err := smx509.ParseCertificatePEM(fileBytes)
+		if err != nil {
+			logging.Context(ctx).Info("failed to load server root cert/key: %v", zap.Error(err))
+			return nil, err
+		}
+
+		// 2. 加载CA，用来验证客户端证书
+		sigCertKey, err := tlcp.X509KeyPair(sigCertFileBytes, sigKeyFileBytes)
+		if err != nil {
+			logging.Context(ctx).Info("failed to read sig cert: %v", zap.Error(err))
+			return nil, err
+		}
+		encCertKey, err := tlcp.X509KeyPair(encCertFileBytes, encKeyFileBytes)
+		if err != nil {
+			logging.Context(ctx).Info("failed to read enc cert: %v", zap.Error(err))
+			return nil, err
+		}
+		pool := smx509.NewCertPool()
+		pool.AddCert(rootCert)
+		// 3. TLS配置，要求客户端提供证书并验证
+		return &tlcp.Config{
+			Certificates: []tlcp.Certificate{sigCertKey, encCertKey},
+			ClientAuth:   tlcp.RequireAndVerifyClientCert,
+			ClientCAs:    pool,
+			CipherSuites: []uint16{
+				tlcp.ECDHE_SM4_GCM_SM3, // 最高优先级
+				tlcp.ECC_SM4_CBC_SM3,   // 最低优先级
+			},
+			// Time:        runtimeTime,
+			EnableDebug: true,
 		}, nil
 	}
 	return nil, nil

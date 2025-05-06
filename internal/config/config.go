@@ -30,6 +30,7 @@ type General struct {
 	HTTP               struct {
 		Addr            string `default:":8040"`
 		EnableTcp       bool   `default:"false"`
+		EnableTLCP      bool   `default:"false"`
 		ShutdownTimeout int    `default:"10"` // seconds
 		ReadTimeout     int    `default:"60"` // seconds
 		WriteTimeout    int    `default:"60"` // seconds
@@ -37,6 +38,11 @@ type General struct {
 		CaFile          string
 		CertFile        string
 		KeyFile         string
+		RootCertFile    string
+		SigCertFile     string
+		SigKeyFile      string
+		EncCertFile     string
+		EncKeyFile      string
 	}
 	Root struct {
 		ID       string `default:"root"`
